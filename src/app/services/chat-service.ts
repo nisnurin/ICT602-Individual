@@ -17,16 +17,33 @@ export class ChatService {
     );
   }
 
-  async chatMessage(text: string) {
-    try {
-      const { data, error } = await this.supabase.from('chat').insert({ text });
-      if (error) {
-        alert(error.message);
-      }
-    } catch (error) {
-      alert(error);
+async chatMessage(text: string) {
+  try {
+    // 1. Get the current logged-in user
+    const { data: { user } } = await this.supabase.auth.getUser();
+
+    if (!user) {
+      alert("You must be logged in to send messages");
+      return;
     }
+
+    // 2. Include the 'sender' (user.id) in the insert object
+    const { data, error } = await this.supabase
+      .from('chat')
+      .insert({ 
+        text, 
+        sender: user.id  // This satisfies the RLS policy: auth.uid() = sender
+      });
+
+    if (error) {
+      alert(error.message);
+    }
+    return data;
+  } catch (error) {
+    alert(error);
+    return null;
   }
+}
 
   async listChat() {
     try {
